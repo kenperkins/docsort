@@ -21,6 +21,7 @@ import { requireAuth, requireSameOrigin } from './auth/middleware.js';
 import { createAuthRouter } from './auth/routes.js';
 import { SessionStore } from './auth/sessions.js';
 import { apiKeyProblem } from './middleware/auth.js';
+import { ClassifierConfigError, getProvider } from './classifier/index.js';
 import { securityHeaders } from './middleware/security.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -31,6 +32,16 @@ try {
   authConfig = parseAuthConfig(process.env);
 } catch (err) {
   if (err instanceof AuthConfigError) {
+    console.error(`[Server] Refusing to start: ${err.message}`);
+    process.exit(1);
+  }
+  throw err;
+}
+
+try {
+  console.log(`[Server] Classifier: ${getProvider().description}`);
+} catch (err) {
+  if (err instanceof ClassifierConfigError) {
     console.error(`[Server] Refusing to start: ${err.message}`);
     process.exit(1);
   }

@@ -9,8 +9,6 @@ export const CONFIG = {
   dbPath: process.env.DB_PATH || '/data/docsort.db',
   confidenceThreshold: parseFloat(process.env.CONFIDENCE_THRESHOLD || '0.7'),
   maxPages: parseInt(process.env.MAX_PAGES || '3'),
-  claudeModel: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5',
-  claudeEffort: (process.env.CLAUDE_EFFORT || 'low') as 'low' | 'medium' | 'high' | 'xhigh' | 'max',
   // Queue processor settings
   pollIntervalMs: parseInt(process.env.POLL_INTERVAL_MS || '5000'),
   // File watcher debounce (wait for file to be fully written)

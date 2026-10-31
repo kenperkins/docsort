@@ -1,7 +1,7 @@
 # docsort
 
-Self-hosted filing for scanned paperwork. Drop PDFs in a folder (or upload them); Claude reads
-the first pages, works out what each document is, when it's from and who it's about, renames it,
+Self-hosted filing for scanned paperwork. Drop PDFs in a folder (or upload them); a vision
+model (Claude by default, or one you run yourself) reads the first pages, works out what each document is, when it's from and who it's about, renames it,
 and files it into a folder tree you can browse. A web UI lets you search, fix metadata and
 review anything it wasn't sure about.
 
@@ -9,17 +9,19 @@ review anything it wasn't sure about.
 scans/2026-10-31_0915.pdf  →  documents/financial/loans/mortgage/2025/2025-12-31_1098-Mortgage-Interest.pdf
 ```
 
-> **Your documents are sent to Anthropic's API** to be read (page images of the first few
-> pages, `MAX_PAGES`). Everything else (the files, the index, the UI) stays on your machine.
-> Typical cost is about $0.02 per document.
+> **Where your documents go depends on the classifier.** With the default (`CLASSIFIER=anthropic`),
+> page images of the first few pages (`MAX_PAGES`) are sent to Anthropic's API, at about $0.02
+> per document. With a model you host (`CLASSIFIER=openai-compatible`), nothing leaves your
+> network. Either way the files, the index and the UI stay on your machine.
 
 ## How it works
 
 1. **Intake:** a watcher picks up PDFs in `/data/incoming`; web uploads and the
    [sync agent](#sync-agent) feed the same queue.
-2. **Classify:** the first pages are rendered to images and sent to Claude with a fixed list
-   of tags (`src/lib/trusted-tags.json`, about 70 household categories). Claude returns 1-3
-   tags, a confidence, the document's own date, and metadata (company, person, institution...).
+2. **Classify:** the first pages are rendered to images and sent to the [classifier](#classifier)
+   with a fixed list of tags (`src/lib/trusted-tags.json`, about 70 household categories). The
+   model returns 1-3 tags, a confidence, the document's own date, and metadata (company, person,
+   institution...), constrained to a schema and checked again before anything is filed.
 3. **File:** the first tag becomes the folder (`/financial/banking` → `documents/financial/banking/<year>/`)
    and the file is renamed `YYYY-MM-DD_Short-Description.pdf`. Below `CONFIDENCE_THRESHOLD`,
    or when no tag fits, it goes to `needs-review` instead.
@@ -65,13 +67,33 @@ effect when their session expires (`SESSION_TTL_HOURS`) or they log out.
 State-changing requests from other origins are refused, including sibling apps on the same
 parent domain.
 
+## Classifier
+
+docsort doesn't depend on a particular model or server. It talks to one of two kinds of endpoint:
+
+| `CLASSIFIER` | Talks to | Settings |
+|---|---|---|
+| `anthropic` (default) | Claude through Anthropic's API | `ANTHROPIC_API_KEY`; optional `CLAUDE_MODEL` (`claude-sonnet-5-5`), `CLAUDE_EFFORT` (`low`) |
+| `openai-compatible` | Anything serving OpenAI-style `/v1/chat/completions` with image input: Ollama, llama.cpp server, vLLM, LM Studio, LocalAI, or a gateway such as LiteLLM | `CLASSIFIER_BASE_URL` (e.g. `http://ollama:11434/v1`), `CLASSIFIER_MODEL` (e.g. `qwen2.5vl:7b`); optional `CLASSIFIER_API_KEY` or `CLASSIFIER_API_KEY_FILE`, `CLASSIFIER_JSON_MODE`, `CLASSIFIER_TIMEOUT_SECONDS` (120) |
+
+With `CLASSIFIER_JSON_MODE=schema` (default), the server is asked to constrain its output to
+docsort's JSON Schema (`response_format: json_schema`). If your server or model doesn't support
+that, use `prompt`: the schema is described in the prompt and the JSON is taken from the reply.
+Either way the answer is validated, and anything outside the tag list goes to review.
+
+Pick a vision model; smaller ones (7-8B) handle bills and statements well but are weaker on
+dates and names, so expect more in the review queue, and consider raising
+`CONFIDENCE_THRESHOLD` if a model is overconfident.
+
+**When the endpoint is down** (refused, timed out, 429 or 5xx), documents stay queued and are
+retried with backoff from 30 seconds up to 10 minutes; they don't go to review. Anything the
+model answers but can't classify does.
+
 ## Configuration
 
 | Variable | Default | |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | (required) | |
-| `CLAUDE_MODEL` | `claude-sonnet-5-5` | A current vision-capable Claude model |
-| `CLAUDE_EFFORT` | `low` | `low` to `max`; higher reads harder documents better, at more cost |
+| `CLASSIFIER` | `anthropic` | See [Classifier](#classifier) for it and its settings |
 | `MAX_PAGES` | `3` | Pages sent per document |
 | `CONFIDENCE_THRESHOLD` | `0.7` | Below this, documents go to needs-review |
 | `TAGS_FILE` | built-in list | JSON object of `"/tag/path": "what belongs here"`; replaces the built-in tags |
@@ -99,9 +121,9 @@ and migration status need a login.
   constrained to a schema with tags from your list, so the worst outcome is a misfiled document,
   wrong metadata, or a falsely high confidence. It can't make docsort write outside the
   documents folder or run anything. Check the review queue now and then.
-- **Refusals.** If the model declines to read a document, it goes to needs-review. On the
-  default model, Anthropic's server-side fallback first retries on a fallback model; that retry
-  is billed at the fallback model's rates.
+- **Refusals.** If the model declines to read a document, it goes to needs-review. With
+  `CLASSIFIER=anthropic` on the default model, Anthropic's server-side fallback first retries on
+  a fallback model; that retry is billed at the fallback model's rates.
 
 ## Sync agent
 

@@ -17,6 +17,7 @@ import {
   getDocumentPersons,
 } from '../services/database.js';
 import { classifyDocument } from '../services/classifier.js';
+import { ProviderUnavailableError } from '../classifier/index.js';
 import { reconcileTags } from '../services/tag-reconciler.js';
 import { reconcilePerson } from '../services/person-reconciler.js';
 import { safeMoveFile, getUniqueFilename, tagPathToFolder, documentYear } from '../services/file-utils.js';
@@ -202,6 +203,9 @@ router.post('/:id/reclassify', async (req, res) => {
       },
     });
   } catch (err) {
+    if (err instanceof ProviderUnavailableError) {
+      return res.status(503).json({ error: 'The classifier is unavailable right now; try again later' });
+    }
     console.error('Error reclassifying document:', err);
     res.status(500).json({ error: 'Failed to reclassify document' });
   }

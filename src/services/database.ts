@@ -209,6 +209,16 @@ export function getNextQueueItem(): QueueItem | null {
   return item || null;
 }
 
+/** Back to the queue untouched, e.g. when the classifier endpoint is down. */
+export function markQueueItemPending(id: number): void {
+  const db = getDatabase();
+  db.prepare(`
+    UPDATE queue
+    SET status = 'pending', started_at = NULL
+    WHERE id = ?
+  `).run(id);
+}
+
 export function markQueueItemProcessing(id: number): void {
   const db = getDatabase();
   db.prepare(`

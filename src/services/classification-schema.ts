@@ -34,7 +34,8 @@ export function buildClassificationSchema(tagPaths: string[] = Object.keys(TRUST
   });
 }
 
-export type RawClassification = z.infer<ReturnType<typeof buildClassificationSchema>>;
+export type ClassificationSchema = ReturnType<typeof buildClassificationSchema>;
+export type RawClassification = z.infer<ClassificationSchema>;
 
 const DATE_PATTERN = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
 

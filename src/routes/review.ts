@@ -5,6 +5,7 @@ import {
   updateDocument,
 } from '../services/database.js';
 import { classifyDocument } from '../services/classifier.js';
+import { ProviderUnavailableError } from '../classifier/index.js';
 import type { Document } from '../lib/types.js';
 
 const router: RouterType = Router();
@@ -134,6 +135,9 @@ router.post('/:id/reclassify', async (req, res) => {
       classification: result,
     });
   } catch (err) {
+    if (err instanceof ProviderUnavailableError) {
+      return res.status(503).json({ error: 'The classifier is unavailable right now; try again later' });
+    }
     console.error('Error reclassifying document:', err);
     res.status(500).json({ error: 'Failed to reclassify document' });
   }
