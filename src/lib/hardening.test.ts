@@ -90,5 +90,7 @@ describe('securityHeaders', () => {
     expect(headers['Content-Security-Policy']).toContain("frame-ancestors 'none'");
     expect(headers['Content-Security-Policy']).toContain("form-action 'self' https://auth.example.com");
     expect(headers['X-Content-Type-Options']).toBe('nosniff');
+    // no-referrer would make browsers send Origin: null on same-origin writes.
+    expect(headers['Referrer-Policy']).toBe('same-origin');
   });
 });
