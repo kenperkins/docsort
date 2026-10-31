@@ -194,8 +194,22 @@ describe('requireSameOrigin', () => {
     expect(run(handler, req).nextCalled).toBe(true);
   });
 
+  it('allows a browser same-origin write that carries Origin: null', () => {
+    // What Chrome sends for the logout form under Referrer-Policy: no-referrer.
+    const req = fakeReq({ method: 'POST', headers: { origin: 'null', 'sec-fetch-site': 'same-origin' } });
+    expect(run(handler, req).nextCalled).toBe(true);
+  });
+
+  it('trusts Sec-Fetch-Site over a matching Origin, and Origin when there is no Sec-Fetch-Site', () => {
+    const spoofed = fakeReq({ method: 'POST', headers: { origin: 'https://docs.example.com', 'sec-fetch-site': 'cross-site' } });
+    expect(run(handler, spoofed)).toMatchObject({ status: 403 });
+    expect(run(handler, fakeReq({ method: 'POST', headers: { origin: 'null' } }))).toMatchObject({ status: 403 });
+    expect(run(handler, fakeReq({ method: 'POST' })).nextCalled).toBe(true);
+  });
+
   it('refuses cross-origin and same-site writes', () => {
     expect(run(handler, fakeReq({ method: 'DELETE', headers: { origin: 'https://evil.example' } }))).toMatchObject({ status: 403 });
+    expect(run(handler, fakeReq({ method: 'DELETE', headers: { origin: 'https://evil.example', 'sec-fetch-site': 'cross-site' } }))).toMatchObject({ status: 403 });
     // A sibling app on the parent domain: same-site, so a Lax cookie would be sent.
     const sibling = fakeReq({ method: 'POST', headers: { origin: 'https://rimworld.example.com', 'sec-fetch-site': 'same-site' } });
     expect(run(handler, sibling)).toMatchObject({ status: 403 });

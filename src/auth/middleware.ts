@@ -112,13 +112,16 @@ export function requireSameOrigin(appOrigin: string | undefined): RequestHandler
       next();
       return;
     }
-    const origin = headerValue(req, 'origin');
+    // Sec-Fetch-Site is set by the browser and can't be changed by page script, so it decides
+    // when present. Origin alone is unreliable: under some referrer policies browsers send
+    // "Origin: null" even for same-origin form posts and fetches.
     const fetchSite = headerValue(req, 'sec-fetch-site');
-    const crossOrigin =
-      (origin !== undefined && appOrigin !== undefined && origin !== appOrigin) ||
-      fetchSite === 'cross-site' ||
-      fetchSite === 'same-site';
-    if (crossOrigin) {
+    const origin = headerValue(req, 'origin');
+    const allowed =
+      fetchSite !== undefined
+        ? fetchSite === 'same-origin' || fetchSite === 'none'
+        : origin === undefined || appOrigin === undefined || origin === appOrigin;
+    if (!allowed) {
       res.status(403).json({ error: 'Cross-origin request refused' });
       return;
     }

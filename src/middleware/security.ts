@@ -23,7 +23,9 @@ export function securityHeaders(logoutUrl?: string): RequestHandler {
   return (_req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Content-Security-Policy', csp);
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Referrer-Policy', 'no-referrer');
+    // same-origin, not no-referrer: no-referrer also makes browsers send "Origin: null" on
+    // same-origin writes. Nothing is sent to other sites either way.
+    res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     res.setHeader('X-Frame-Options', 'DENY');
     next();
