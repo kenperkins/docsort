@@ -1,0 +1,14 @@
+{
+  "name": "docsort-sync-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Folder watcher that submits PDFs to a docsort server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0"
+  }
+}

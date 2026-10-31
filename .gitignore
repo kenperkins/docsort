@@ -1,0 +1,12 @@
+node_modules/
+dist/
+frontend/dist/
+coverage/
+.DS_Store
+.env
+.env.*
+data/
+*.db
+people.json
+tags.json
+!.env.example

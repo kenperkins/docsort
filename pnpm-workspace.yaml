@@ -1,0 +1,14 @@
+packages:
+  - "."
+  - "frontend"
+
+onlyBuiltDependencies:
+  - better-sqlite3
+  - canvas
+  - esbuild
+
+# pdfjs-dist 4.2 pulls its own canvas@2 for the DOMMatrix polyfill while pdf-to-img
+# renders with canvas@3; two DOMMatrix classes make tiling-pattern pages fail with
+# "Expected DOMMatrix". Pin everything to one canvas.
+overrides:
+  canvas: 3.1.0
