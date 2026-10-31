@@ -1,0 +1,17 @@
+# Example deployment. Copy .env.example to .env and fill it in, then: docker compose up -d
+# Put a TLS reverse proxy (Caddy, Traefik, nginx) in front: APP_URL must be https.
+services:
+  docsort:
+    # Follows 0.1.x patch releases. Breaking changes get a new minor until 1.0.
+    image: ghcr.io/kenperkins/docsort:0.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file: .env
+    volumes:
+      # Database, filed documents and working folders. Owned by UID 1000 in the container.
+      - ./data:/data
+      # Where your scanner drops PDFs; picked up within seconds.
+      - ./scans:/data/incoming
+      # Optional: household members and their name variants, loaded on first start.
+      # - ./people.json:/config/people.json:ro
