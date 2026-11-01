@@ -189,30 +189,6 @@ export function ReviewPage() {
         )}
       </div>
 
-      <style>{`
-        .review-item {
-          display: flex;
-          align-items: flex-start;
-          padding: 15px;
-          border-bottom: 1px solid #eee;
-          gap: 15px;
-        }
-
-        .review-item:last-child {
-          border-bottom: none;
-        }
-
-        .review-actions {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          flex-shrink: 0;
-        }
-
-        .review-actions .btn {
-          white-space: nowrap;
-        }
-      `}</style>
     </div>
   );
 }
