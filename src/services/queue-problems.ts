@@ -28,7 +28,7 @@ const EXPLANATIONS: [RegExp, FailureExplanation][] = [
     { reason: 'The AI model the app uses is no longer available.', hint: 'Retry once the app has been updated.' },
   ],
   [
-    /not available for this API key|not in the proxy's price list/i,
+    /not available for this API key|proxy's price list/i,
     { reason: 'The AI proxy doesn’t allow this model.', hint: 'Check CLAUDE_MODEL against the proxy’s allowed models.' },
   ],
   [
@@ -43,7 +43,7 @@ const EXPLANATIONS: [RegExp, FailureExplanation][] = [
     },
   ],
   [
-    /rate_limit|overloaded|api_error|ECONNRESET|ETIMEDOUT|ENOTFOUND|fetch failed|socket hang up/i,
+    /rate_limit|overloaded|temporarily unreachable|Cannot connect to host|api_error|ECONNRESET|ETIMEDOUT|ENOTFOUND|fetch failed|socket hang up/i,
     { reason: 'The AI service had a temporary problem.', hint: 'Retry.' },
   ],
 ];

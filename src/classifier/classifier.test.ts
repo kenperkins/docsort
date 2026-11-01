@@ -225,6 +225,15 @@ describe('anthropic provider through the LLM proxy', () => {
     expect((await failure()).reason).toBe('The AI proxy doesn’t allow this model.');
     reply = proxyError(403, 'permission_error', "model 'claude-opus-4-8' is not in the proxy's price list");
     expect((await failure()).reason).toBe('The AI proxy doesn’t allow this model.');
+    reply = proxyError(403, 'permission_error', "model 'claude-opus-5-5' resolves to an ID missing from the proxy's price list");
+    expect((await failure()).reason).toBe('The AI proxy doesn’t allow this model.');
+  });
+
+  it('labels the proxy’s own outages as temporary', async () => {
+    reply = proxyError(503, 'service_unavailable', 'Service Unavailable, the authentication database is temporarily unreachable');
+    expect((await failure()).reason).toContain('temporary');
+    reply = proxyError(500, 'api_connection_error', 'Cannot connect to host api.anthropic.com:443');
+    expect((await failure()).reason).toContain('temporary');
   });
 
   it('reports an unknown virtual key as a rejected key', async () => {
