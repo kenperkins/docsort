@@ -5,6 +5,7 @@ interface QueueStats {
   pending: number;
   processing: number;
   needsAttention: number;
+  classifierUnavailable: { reason: string; hint: string; error: string; retryAt: string } | null;
 }
 
 interface TagNode {
@@ -181,6 +182,15 @@ export function Sidebar({ onNavigate }: { onNavigate: () => void }) {
           <span>
             {stats.pending} waiting · <span className={stats.processing > 0 ? 'queue-processing' : undefined}>{stats.processing} processing</span>
           </span>
+          {stats.classifierUnavailable && (
+            <span
+              className="queue-waiting"
+              title={`${stats.classifierUnavailable.hint}\n\n${stats.classifierUnavailable.error}`}
+            >
+              ⏸ {stats.classifierUnavailable.reason} Next try{' '}
+              {new Date(stats.classifierUnavailable.retryAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.
+            </span>
+          )}
           {stats.needsAttention > 0 && (
             <NavLink to="/problems" className="queue-attention">
               ⚠ {stats.needsAttention} {stats.needsAttention === 1 ? 'needs' : 'need'} attention

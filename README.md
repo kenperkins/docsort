@@ -121,9 +121,9 @@ and migration status need a login.
   constrained to a schema with tags from your list, so the worst outcome is a misfiled document,
   wrong metadata, or a falsely high confidence. It can't make docsort write outside the
   documents folder or run anything. Check the review queue now and then.
-- **Refusals.** If the model declines to read a document, it goes to needs-review. With
-  `CLASSIFIER=anthropic` on the default model, Anthropic's server-side fallback first retries on
-  a fallback model; that retry is billed at the fallback model's rates.
+- **Refusals.** If the model declines to read a document, it goes to needs-review. docsort
+  doesn't use Anthropic's server-side fallback, so a refused document isn't retried on another
+  model.
 
 ## Sync agent
 

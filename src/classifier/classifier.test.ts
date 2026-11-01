@@ -4,7 +4,8 @@ import type { AddressInfo } from 'net';
 import Anthropic from '@anthropic-ai/sdk';
 import { ClassifierConfigError, parseClassifierConfig, type ClassifierConfig } from './config.js';
 import { createOpenAICompatibleProvider, extractJsonObject, toResponseSchema } from './openai-compatible.js';
-import { isTransientAnthropicError } from './anthropic.js';
+import { createAnthropicProvider, isTransientAnthropicError } from './anthropic.js';
+import { explainFailure } from '../services/queue-problems.js';
 import { ProviderUnavailableError, type ClassifyRequest } from './provider.js';
 import { buildClassificationSchema } from '../services/classification-schema.js';
 import { backoffDelayMs } from '../services/queue-processor.js';
@@ -170,6 +171,70 @@ describe('isTransientAnthropicError', () => {
     expect(isTransientAnthropicError(apiError(400))).toBe(false);
     expect(isTransientAnthropicError(Object.create(Anthropic.APIConnectionError.prototype))).toBe(true);
     expect(isTransientAnthropicError(new Error('boom'))).toBe(false);
+  });
+});
+
+describe('anthropic provider through the LLM proxy', () => {
+  const provider = () =>
+    createAnthropicProvider(
+      { provider: 'anthropic', model: 'claude-sonnet-5-5', effort: 'low' },
+      new Anthropic({ apiKey: 'sk-virtual', baseURL: baseUrl.replace(/\/v1$/, '/anthropic'), maxRetries: 0 })
+    );
+  const proxyError = (status: number, type: string, message: string) => ({
+    status,
+    body: { error: { message, type, param: null, code: String(status) } },
+  });
+  const failure = async () => {
+    const err = await provider()
+      .classify(request)
+      .then(
+        () => null,
+        (e: Error) => e
+      );
+    expect(err).toBeInstanceOf(Error);
+    return { err: err as Error, ...explainFailure((err as Error).message) };
+  };
+
+  it('sends no server-side fallback', async () => {
+    reply = {
+      status: 200,
+      body: {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-sonnet-5-5',
+        content: [],
+        stop_reason: 'refusal',
+        usage: { input_tokens: 1, output_tokens: 0 },
+      },
+    };
+    await expect(provider().classify(request)).resolves.toMatchObject({ kind: 'declined' });
+    expect(lastRequest?.body).not.toHaveProperty('fallbacks');
+    expect(String(lastRequest?.headers['anthropic-beta'] ?? '')).not.toContain('fallback');
+  });
+
+  it('waits out a spent budget and explains it', async () => {
+    reply = proxyError(429, 'budget_exceeded', 'Budget has been exceeded! Current cost: 25.01, Max budget: 25.0');
+    const { err, reason } = await failure();
+    expect(err).toBeInstanceOf(ProviderUnavailableError);
+    expect(reason).toBe('The monthly AI budget is used up.');
+  });
+
+  it('blames the proxy, not the API key, for a model it won’t serve', async () => {
+    reply = proxyError(403, 'permission_error', "The requested model 'claude-opus-5-5' is not available for this API key");
+    expect((await failure()).reason).toBe('The AI proxy doesn’t allow this model.');
+    reply = proxyError(403, 'permission_error', "model 'claude-opus-4-8' is not in the proxy's price list");
+    expect((await failure()).reason).toBe('The AI proxy doesn’t allow this model.');
+  });
+
+  it('reports an unknown virtual key as a rejected key', async () => {
+    reply = proxyError(401, 'token_not_found_in_db', 'Authentication Error, Invalid proxy server token passed.');
+    expect((await failure()).reason).toContain('API key was rejected');
+  });
+
+  it('still explains Anthropic’s own rate limit as temporary', async () => {
+    reply = { status: 429, body: { type: 'error', error: { type: 'rate_limit_error', message: 'Number of requests has exceeded your rate limit' } } };
+    expect((await failure()).reason).toContain('temporary');
   });
 });
 

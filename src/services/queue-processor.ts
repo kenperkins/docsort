@@ -16,6 +16,12 @@ let running = false;
 let paused = false;
 let processingTimeout: NodeJS.Timeout | null = null;
 let unavailableStreak = 0;
+let unavailable: ClassifierUnavailable | null = null;
+
+export interface ClassifierUnavailable {
+  error: string;
+  retryAt: string;
+}
 
 const BACKOFF_BASE_MS = 30_000;
 const BACKOFF_MAX_MS = 10 * 60_000;
@@ -56,6 +62,11 @@ export function isQueuePaused(): boolean {
   return paused;
 }
 
+/** Why the queue is waiting on the classifier, or null while it's reachable. */
+export function getClassifierUnavailable(): ClassifierUnavailable | null {
+  return unavailable;
+}
+
 function scheduleNextPoll(delayMs: number = CONFIG.pollIntervalMs): void {
   if (!running) return;
   processingTimeout = setTimeout(processNextItem, delayMs);
@@ -85,6 +96,7 @@ async function processNextItem(): Promise<void> {
         console.log('[QueueProcessor] Classifier reachable again');
         unavailableStreak = 0;
       }
+      unavailable = null;
 
       if (result.isDuplicate && result.duplicateOf) {
         // Move duplicate to graveyard with "duplicate-" prefix
@@ -105,6 +117,7 @@ async function processNextItem(): Promise<void> {
         markQueueItemPending(item.id);
         unavailableStreak += 1;
         const delay = backoffDelayMs(unavailableStreak);
+        unavailable = { error: err.message, retryAt: new Date(Date.now() + delay).toISOString() };
         if (unavailableStreak === 1 || delay === BACKOFF_MAX_MS) {
           console.warn(`[QueueProcessor] Classifier unavailable (${err.message}); retrying in ${Math.round(delay / 1000)}s`);
         }

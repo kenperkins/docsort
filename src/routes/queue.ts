@@ -2,9 +2,10 @@ import { Router, type Router as RouterType } from 'express';
 import { BadQueryError, queryInt } from '../lib/query.js';
 import { sendPdf } from '../middleware/security.js';
 import { getQueueStats, getRecentQueueItems } from '../services/database.js';
-import { isQueuePaused, setQueuePaused } from '../services/queue-processor.js';
+import { getClassifierUnavailable, isQueuePaused, setQueuePaused } from '../services/queue-processor.js';
 import {
   getQueueProblems,
+  explainFailure,
   findProblem,
   retryProblem,
   dismissProblem,
@@ -16,7 +17,12 @@ const router: RouterType = Router();
 // Get queue stats
 router.get('/stats', (_req, res) => {
   try {
-    res.json({ ...getQueueStats(), needsAttention: getQueueProblems().length });
+    const unavailable = getClassifierUnavailable();
+    res.json({
+      ...getQueueStats(),
+      needsAttention: getQueueProblems().length,
+      classifierUnavailable: unavailable && { ...unavailable, ...explainFailure(unavailable.error) },
+    });
   } catch (err) {
     console.error('Error getting queue stats:', err);
     res.status(500).json({ error: 'Failed to get queue stats' });
