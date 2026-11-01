@@ -205,65 +205,6 @@ export function MetadataEditor({ document, onSave, onCancel }: MetadataEditorPro
         </button>
       </div>
 
-      <style>{`
-        .metadata-editor {
-          background: white;
-          padding: 20px;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .editor-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 15px;
-          margin-bottom: 20px;
-        }
-
-        .field {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .field.full-width {
-          grid-column: 1 / -1;
-        }
-
-        .field label {
-          font-size: 0.85rem;
-          font-weight: 500;
-          color: #666;
-          margin-bottom: 5px;
-        }
-
-        .field input,
-        .field select,
-        .field textarea {
-          padding: 8px 12px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          font-size: 0.95rem;
-        }
-
-        .field input:focus,
-        .field select:focus,
-        .field textarea:focus {
-          outline: none;
-          border-color: #3498db;
-        }
-
-        .field textarea {
-          resize: vertical;
-        }
-
-        .editor-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          padding-top: 15px;
-          border-top: 1px solid #eee;
-        }
-      `}</style>
     </form>
   );
 }
