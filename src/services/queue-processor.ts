@@ -124,6 +124,7 @@ async function processNextItem(): Promise<void> {
         scheduleNextPoll(delay);
         return;
       }
+      unavailable = null;
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error(`[QueueProcessor] Failed queue item ${item.id}: ${errorMessage}`);
       markQueueItemFailed(item.id, errorMessage);
