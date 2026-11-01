@@ -5,9 +5,6 @@ import { ProviderUnavailableError, type ClassifierProvider, type ClassifyRequest
 
 type AnthropicConfig = Extract<ClassifierConfig, { provider: 'anthropic' }>;
 
-// Models that take the server-side refusal fallback ("default" picks the fallback model).
-const SERVER_FALLBACK_MODELS = new Set(['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-opus-5', 'claude-fable-5-1']);
-
 /** Worth waiting out rather than failing the document. The SDK has already retried by now. */
 export function isTransientAnthropicError(err: unknown): boolean {
   if (err instanceof Anthropic.APIConnectionError) {
@@ -33,9 +30,6 @@ export function createAnthropicProvider(config: AnthropicConfig, client: Anthrop
           max_tokens: 8192,
           // Thinking stays at the model default; low effort keeps routine classification cheap.
           output_config: { effort: config.effort, format: betaZodOutputFormat(schema) },
-          ...(SERVER_FALLBACK_MODELS.has(config.model)
-            ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }
-            : {}),
           messages: [{ role: 'user', content: [...images, { type: 'text', text: prompt }] }],
         });
       } catch (err) {

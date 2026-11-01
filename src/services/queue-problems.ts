@@ -28,8 +28,19 @@ const EXPLANATIONS: [RegExp, FailureExplanation][] = [
     { reason: 'The AI model the app uses is no longer available.', hint: 'Retry once the app has been updated.' },
   ],
   [
-    /authentication_error|invalid x-api-key|permission_error/i,
+    /not available for this API key|not in the proxy's price list/i,
+    { reason: 'The AI proxy doesn’t allow this model.', hint: 'Check CLAUDE_MODEL against the proxy’s allowed models.' },
+  ],
+  [
+    /authentication_error|invalid x-api-key|permission_error|auth_error|token_not_found_in_db/i,
     { reason: 'The app’s Anthropic API key was rejected.', hint: 'Check the API key secret, then retry.' },
+  ],
+  [
+    /budget_exceeded|Budget has been exceeded/i,
+    {
+      reason: 'The monthly AI budget is used up.',
+      hint: 'Documents will resume when it resets on the 1st, or raise the budget in perkins.io’s apps/llm-proxy/access.yaml.',
+    },
   ],
   [
     /rate_limit|overloaded|api_error|ECONNRESET|ETIMEDOUT|ENOTFOUND|fetch failed|socket hang up/i,
